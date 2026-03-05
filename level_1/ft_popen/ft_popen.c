@@ -1,6 +1,14 @@
 #include <unistd.h>
 #include <stdio.h>
 
+/*
+** ft_popen funksiyasi commandni ishga tushirib unga pipe orqali bog'lanadi
+** Parametrlar:
+** 	file - bajariladigan dastur nome(misol uchun: "ls", "cat")
+**	argv - command argumentlari (misol uchun: {"ls", "-l", NULL})
+**	type - 'r' = o'qish uchun (commandan malumot olish)
+**			'w' = yozish (commandga malumot yuborish)
+*/
 int	ft_popen(const char *file, char *argv[], char type)
 {
 	int fd[2];
@@ -14,18 +22,16 @@ int	ft_popen(const char *file, char *argv[], char type)
 	pid = fork();
 	if (pid == 0)
 	{
+		// READ MODE (type == 'r'):
+		// Parent o'qimoqchi, shuning uchun child yozishi kerak
 		if (type == 'r')
-		{
-			dup2(fd[0], STDIN_FILENO);
-			close(fd[1]);
-			close(fd[0]);
-		}
+			dup2(fd[1], 1); // Child YOZADI (parent o'qishi uchun)
+		// WRITE MODE (type == 'w'):
+		// Parent yozmoqchi, shuning uchun child o'qishi kerak
 		if (type == 'w')
-		{
-			dup2(fd[1], STDOUT_FILENO);
-			close(fd[0]);
-			close(fd[1]);
-		}
+			dup2(fd[0], 0);  // Child O'QIYDI (parent yozishi uchun)
+		close(fd[0]);
+		close(fd[1]);
 		execvp(file, (char * const *)argv);
 	}
 	if (type == 'r')
@@ -33,12 +39,8 @@ int	ft_popen(const char *file, char *argv[], char type)
 		close(fd[1]);
 		return (fd[0]);
 	}
-	if (type == 'w')
-	{
-		close(fd[0]);
-		return (fd[1]);
-	}
-	return (1);
+	close(fd[0]);
+	return (fd[1]);
 }
 
 int main(void)
