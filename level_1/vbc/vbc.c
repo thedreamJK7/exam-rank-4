@@ -2,8 +2,10 @@
 #include <stdio.h>
 
 int	parse_expr(char **s);
+int	parse_term(char **s);
 
-int g_value = 0;
+int g_error = 0;
+
 int	is_digit(char c)
 {
 	return ('0' <= c && '9' >= c);
@@ -15,71 +17,77 @@ void	unexpected(char c)
 		printf("Unexpected token '%c'\n", c);
 	else
 		printf("Unexpected end of input\n");
+	g_error = 1;
 }
 
 int parse_factor(char **s)
 {
+	int value;
+	if (**s == '\0')
+	{
+		unexpected(0);
+		return (0);		
+	}
 	if (is_digit(**s) == 1)
 	{
-		g_value = **s - '0';
-		return (0);
+		value = **s - '0';
+		(*s)++;
+		return (value);
 	}
 	if (**s == '(')
 	{
 		(*s)++;
-		parse_expr(s);
+		value = parse_expr(s);
 		if (**s != ')')
-			return (1);
-		else
-			(*s)++;
-	}
-	else
-	{
-		unexpected(**s);
-		return (1);
+		{
+			unexpected(**s);
+			return (0);
+		}
+		(*s)++;
+		return (value);	
 	}
 	return (0);
 }
 
 int	parse_expr(char **s)
 {
-	g_value = parse_factor(s);
-	(*s)++;
-	while (**s)
+	int result = parse_term(s);
+	while (**s == '+')
 	{
-		if (**s == '+')
-			g_value += parse_factor(s);
-		else if (**s == '*')
-		{
-				
-		}
 		(*s)++;
+		result += parse_term(s);
 	}
-	return (0);
+	return (result);
 }
 
 int	parse_term(char **s)
 {
-	g_value = parse_factor(s);
-	(*s)++;
+	if (g_error)
+	{
+		return (1);
+	}
+	int	result = parse_factor(s);
 	while (**s == '*')
 	{
-		g_value *= parse_factor(s);
 		(*s)++;
+		result *= parse_factor(s);
 	}
-	return (0);
+	return (result);
 }
 
 int	main(int argc, char *argv[])
 {
-	char *s = argv[1];
-
+	char *s;
+	int	result = 0;
 	if (argc != 2)
 		return (1);
-	if (parse_expr(&s) == 0)
+	s = argv[1];
+	result = parse_expr(&s);
+	if (!g_error && *s != '\0')
+		unexpected(*s);
+	if (!g_error)
 	{
-		printf("%i", g_value);
-		return (0);
+		printf("%i", result);
 	}
-	return (1);
+	return (0);
 }
